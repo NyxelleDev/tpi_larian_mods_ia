@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_Mods" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:message id="Msg_Solicitud" name="Paquete compilado y solicitud de aprobación" />
+  <bpmn:message id="Msg_Resultado" name="Resultado de evaluación" />
+  <bpmn:error id="Error_Publicacion" name="Error de publicación" errorCode="PUB_ERR" />
+  <bpmn:collaboration id="Collab_Mods">
+    <bpmn:participant id="Pool_Larian" name="LARIAN STUDIOS" processRef="Proc_Larian" />
+    <bpmn:participant id="Pool_Sony" name="SONY / MICROSOFT" processRef="Proc_Sony" />
+    <bpmn:messageFlow id="MF_01" name="Paquete compilado + solicitud de aprobación" sourceRef="Task_Solicitar" targetRef="Start_Sony" messageRef="Msg_Solicitud" />
+    <bpmn:messageFlow id="MF_02" name="Resultado de evaluación" sourceRef="Task_Enviar" targetRef="Catch_Resp" messageRef="Msg_Resultado" />
+  </bpmn:collaboration>
+  <bpmn:process id="Proc_Larian" name="Proceso Larian" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_L">
+      <bpmn:lane id="Lane_Modder" name="Modder">
+        <bpmn:flowNodeRef>Start_Mod</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Subir</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_IA" name="Sistema_IA">
+        <bpmn:flowNodeRef>Task_Procesar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_IA</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Ticket</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_ErrIA</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Compilar</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_QA" name="Ingeniero_QA">
+        <bpmn:flowNodeRef>Task_QA</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_QA</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Legal" name="Equipo_Legal">
+        <bpmn:flowNodeRef>Task_Solicitar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Catch_Resp</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Consola</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_OK</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Notificar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_ErrRechazo</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_Mod" name="Mod listo para publicar">
+      <bpmn:outgoing>SF_01</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_Subir" name="Subir mod">
+      <bpmn:incoming>SF_01</bpmn:incoming>
+      <bpmn:outgoing>SF_02</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_Procesar" name="Procesar y traducir código">
+      <bpmn:incoming>SF_02</bpmn:incoming>
+      <bpmn:outgoing>SF_03</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="GW_IA" name="¿Validación IA exitosa?">
+      <bpmn:incoming>SF_03</bpmn:incoming>
+      <bpmn:outgoing>SF_04</bpmn:outgoing>
+      <bpmn:outgoing>SF_05</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_Ticket" name="Generar ticket de soporte">
+      <bpmn:incoming>SF_04</bpmn:incoming>
+      <bpmn:incoming>SF_08</bpmn:incoming>
+      <bpmn:outgoing>SF_06</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_ErrIA" name="Fin de error: Mod no aprobado">
+      <bpmn:incoming>SF_06</bpmn:incoming>
+      <bpmn:errorEventDefinition id="End_ErrIA_ed" errorRef="Error_Publicacion" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="Task_QA" name="Revisar y aprobar QA">
+      <bpmn:incoming>SF_05</bpmn:incoming>
+      <bpmn:outgoing>SF_07</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="GW_QA" name="¿Aprobado por QA?">
+      <bpmn:incoming>SF_07</bpmn:incoming>
+      <bpmn:outgoing>SF_08</bpmn:outgoing>
+      <bpmn:outgoing>SF_09</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_Compilar" name="Compilar paquete sanitizado">
+      <bpmn:incoming>SF_09</bpmn:incoming>
+      <bpmn:outgoing>SF_10</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Task_Solicitar" name="Solicitar aprobación a Consola">
+      <bpmn:incoming>SF_10</bpmn:incoming>
+      <bpmn:outgoing>SF_11</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:intermediateCatchEvent id="Catch_Resp" name="Esperando respuesta de Consola">
+      <bpmn:incoming>SF_11</bpmn:incoming>
+      <bpmn:outgoing>SF_12</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="Catch_Resp_ed" messageRef="Msg_Resultado" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="GW_Consola" name="¿Aprobado por Consola?">
+      <bpmn:incoming>SF_12</bpmn:incoming>
+      <bpmn:outgoing>SF_13</bpmn:outgoing>
+      <bpmn:outgoing>SF_14</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_OK" name="Fin éxito: Mod aprobado">
+      <bpmn:incoming>SF_13</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="Task_Notificar" name="Notificar rechazo al modder">
+      <bpmn:incoming>SF_14</bpmn:incoming>
+      <bpmn:outgoing>SF_15</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="End_ErrRechazo" name="Fin de error: Rechazo de Consola">
+      <bpmn:incoming>SF_15</bpmn:incoming>
+      <bpmn:errorEventDefinition id="End_ErrRechazo_ed" errorRef="Error_Publicacion" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SF_01" sourceRef="Start_Mod" targetRef="Task_Subir" />
+    <bpmn:sequenceFlow id="SF_02" sourceRef="Task_Subir" targetRef="Task_Procesar" />
+    <bpmn:sequenceFlow id="SF_03" sourceRef="Task_Procesar" targetRef="GW_IA" />
+    <bpmn:sequenceFlow id="SF_04" name="No" sourceRef="GW_IA" targetRef="Task_Ticket" />
+    <bpmn:sequenceFlow id="SF_05" name="Sí" sourceRef="GW_IA" targetRef="Task_QA" />
+    <bpmn:sequenceFlow id="SF_06" sourceRef="Task_Ticket" targetRef="End_ErrIA" />
+    <bpmn:sequenceFlow id="SF_07" sourceRef="Task_QA" targetRef="GW_QA" />
+    <bpmn:sequenceFlow id="SF_08" name="No" sourceRef="GW_QA" targetRef="Task_Ticket" />
+    <bpmn:sequenceFlow id="SF_09" name="Sí" sourceRef="GW_QA" targetRef="Task_Compilar" />
+    <bpmn:sequenceFlow id="SF_10" sourceRef="Task_Compilar" targetRef="Task_Solicitar" />
+    <bpmn:sequenceFlow id="SF_11" sourceRef="Task_Solicitar" targetRef="Catch_Resp" />
+    <bpmn:sequenceFlow id="SF_12" sourceRef="Catch_Resp" targetRef="GW_Consola" />
+    <bpmn:sequenceFlow id="SF_13" name="Sí" sourceRef="GW_Consola" targetRef="End_OK" />
+    <bpmn:sequenceFlow id="SF_14" name="No" sourceRef="GW_Consola" targetRef="Task_Notificar" />
+    <bpmn:sequenceFlow id="SF_15" sourceRef="Task_Notificar" targetRef="End_ErrRechazo" />
+  </bpmn:process>
+  <bpmn:process id="Proc_Sony" name="Proceso Sony / Microsoft" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_S">
+      <bpmn:lane id="Lane_Consola" name="Consola">
+        <bpmn:flowNodeRef>Start_Sony</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Evaluar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Enviar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Sony</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Publicar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_OKSony</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_ErrSony</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_Sony" name="Solicitud recibida">
+      <bpmn:outgoing>SF_16</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="Start_Sony_ed" messageRef="Msg_Solicitud" />
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_Evaluar" name="Evaluar paquete compilado">
+      <bpmn:incoming>SF_16</bpmn:incoming>
+      <bpmn:outgoing>SF_17</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="Task_Enviar" name="Enviar resultado de evaluación">
+      <bpmn:incoming>SF_17</bpmn:incoming>
+      <bpmn:outgoing>SF_18</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="GW_Sony" name="¿Aprobado por Consola?">
+      <bpmn:incoming>SF_18</bpmn:incoming>
+      <bpmn:outgoing>SF_19</bpmn:outgoing>
+      <bpmn:outgoing>SF_21</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_Publicar" name="Publicar en tiendas digitales">
+      <bpmn:incoming>SF_19</bpmn:incoming>
+      <bpmn:outgoing>SF_20</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_OKSony" name="Fin éxito: Mod publicado">
+      <bpmn:incoming>SF_20</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_ErrSony" name="Fin de error: Mod rechazado por Consola">
+      <bpmn:incoming>SF_21</bpmn:incoming>
+      <bpmn:errorEventDefinition id="End_ErrSony_ed" errorRef="Error_Publicacion" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SF_16" sourceRef="Start_Sony" targetRef="Task_Evaluar" />
+    <bpmn:sequenceFlow id="SF_17" sourceRef="Task_Evaluar" targetRef="Task_Enviar" />
+    <bpmn:sequenceFlow id="SF_18" sourceRef="Task_Enviar" targetRef="GW_Sony" />
+    <bpmn:sequenceFlow id="SF_19" name="Sí" sourceRef="GW_Sony" targetRef="Task_Publicar" />
+    <bpmn:sequenceFlow id="SF_20" sourceRef="Task_Publicar" targetRef="End_OKSony" />
+    <bpmn:sequenceFlow id="SF_21" name="No" sourceRef="GW_Sony" targetRef="End_ErrSony" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_Mods">
+    <bpmndi:BPMNPlane id="Plane_Mods" bpmnElement="Collab_Mods">
+      <bpmndi:BPMNShape id="Pool_Larian_di" bpmnElement="Pool_Larian" isHorizontal="true">
+        <dc:Bounds x="40" y="100" width="2380" height="880" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Modder_di" bpmnElement="Lane_Modder" isHorizontal="true">
+        <dc:Bounds x="110" y="100" width="2310" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_IA_di" bpmnElement="Lane_IA" isHorizontal="true">
+        <dc:Bounds x="110" y="270" width="2310" height="210" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_QA_di" bpmnElement="Lane_QA" isHorizontal="true">
+        <dc:Bounds x="110" y="480" width="2310" height="190" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Legal_di" bpmnElement="Lane_Legal" isHorizontal="true">
+        <dc:Bounds x="110" y="670" width="2310" height="310" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pool_Sony_di" bpmnElement="Pool_Sony" isHorizontal="true">
+        <dc:Bounds x="40" y="1090" width="2380" height="300" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Consola_di" bpmnElement="Lane_Consola" isHorizontal="true">
+        <dc:Bounds x="110" y="1090" width="2310" height="300" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_Mod_di" bpmnElement="Start_Mod">
+        <dc:Bounds x="313" y="163" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="275" y="211" width="120" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Subir_di" bpmnElement="Task_Subir">
+        <dc:Bounds x="375" y="147" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Procesar_di" bpmnElement="Task_Procesar">
+        <dc:Bounds x="565" y="337" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_IA_di" bpmnElement="GW_IA" isMarkerVisible="true">
+        <dc:Bounds x="790" y="345" width="60" height="60" />
+        <bpmndi:BPMNLabel><dc:Bounds x="760" y="307" width="120" height="30" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Ticket_di" bpmnElement="Task_Ticket">
+        <dc:Bounds x="1085" y="337" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_ErrIA_di" bpmnElement="End_ErrIA">
+        <dc:Bounds x="1338" y="353" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1300" y="401" width="120" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_QA_di" bpmnElement="Task_QA">
+        <dc:Bounds x="905" y="537" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_QA_di" bpmnElement="GW_QA" isMarkerVisible="true">
+        <dc:Bounds x="1140" y="545" width="60" height="60" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1110" y="507" width="120" height="30" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Compilar_di" bpmnElement="Task_Compilar">
+        <dc:Bounds x="1495" y="337" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Solicitar_di" bpmnElement="Task_Solicitar">
+        <dc:Bounds x="1495" y="727" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Catch_Resp_di" bpmnElement="Catch_Resp">
+        <dc:Bounds x="1748" y="743" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1710" y="791" width="120" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Consola_di" bpmnElement="GW_Consola" isMarkerVisible="true">
+        <dc:Bounds x="1910" y="735" width="60" height="60" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1880" y="697" width="120" height="30" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_OK_di" bpmnElement="End_OK">
+        <dc:Bounds x="2278" y="743" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2240" y="791" width="120" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Notificar_di" bpmnElement="Task_Notificar">
+        <dc:Bounds x="2025" y="862" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_ErrRechazo_di" bpmnElement="End_ErrRechazo">
+        <dc:Bounds x="2278" y="878" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2240" y="926" width="120" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_Sony_di" bpmnElement="Start_Sony">
+        <dc:Bounds x="1078" y="1178" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1040" y="1226" width="120" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Evaluar_di" bpmnElement="Task_Evaluar">
+        <dc:Bounds x="1185" y="1162" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Enviar_di" bpmnElement="Task_Enviar">
+        <dc:Bounds x="1395" y="1162" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Sony_di" bpmnElement="GW_Sony" isMarkerVisible="true">
+        <dc:Bounds x="1650" y="1170" width="60" height="60" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1620" y="1132" width="120" height="30" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Publicar_di" bpmnElement="Task_Publicar">
+        <dc:Bounds x="1815" y="1162" width="170" height="76" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_OKSony_di" bpmnElement="End_OKSony">
+        <dc:Bounds x="2078" y="1178" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2040" y="1226" width="120" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_ErrSony_di" bpmnElement="End_ErrSony">
+        <dc:Bounds x="1658" y="1303" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1620" y="1351" width="120" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SF_01_di" bpmnElement="SF_01">
+        <di:waypoint x="357" y="185" />
+        <di:waypoint x="375" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_02_di" bpmnElement="SF_02">
+        <di:waypoint x="460" y="223" />
+        <di:waypoint x="460" y="375" />
+        <di:waypoint x="565" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_03_di" bpmnElement="SF_03">
+        <di:waypoint x="735" y="375" />
+        <di:waypoint x="790" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_04_di" bpmnElement="SF_04">
+        <di:waypoint x="850" y="375" />
+        <di:waypoint x="1085" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_05_di" bpmnElement="SF_05">
+        <di:waypoint x="820" y="405" />
+        <di:waypoint x="820" y="575" />
+        <di:waypoint x="905" y="575" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_06_di" bpmnElement="SF_06">
+        <di:waypoint x="1255" y="375" />
+        <di:waypoint x="1338" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_07_di" bpmnElement="SF_07">
+        <di:waypoint x="1075" y="575" />
+        <di:waypoint x="1140" y="575" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_08_di" bpmnElement="SF_08">
+        <di:waypoint x="1170" y="545" />
+        <di:waypoint x="1170" y="413" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_09_di" bpmnElement="SF_09">
+        <di:waypoint x="1200" y="575" />
+        <di:waypoint x="1450" y="575" />
+        <di:waypoint x="1450" y="375" />
+        <di:waypoint x="1495" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_10_di" bpmnElement="SF_10">
+        <di:waypoint x="1580" y="413" />
+        <di:waypoint x="1580" y="727" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_11_di" bpmnElement="SF_11">
+        <di:waypoint x="1665" y="765" />
+        <di:waypoint x="1748" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_12_di" bpmnElement="SF_12">
+        <di:waypoint x="1792" y="765" />
+        <di:waypoint x="1910" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_13_di" bpmnElement="SF_13">
+        <di:waypoint x="1970" y="765" />
+        <di:waypoint x="2278" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_14_di" bpmnElement="SF_14">
+        <di:waypoint x="1940" y="795" />
+        <di:waypoint x="1940" y="900" />
+        <di:waypoint x="2025" y="900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_15_di" bpmnElement="SF_15">
+        <di:waypoint x="2195" y="900" />
+        <di:waypoint x="2278" y="900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_16_di" bpmnElement="SF_16">
+        <di:waypoint x="1122" y="1200" />
+        <di:waypoint x="1185" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_17_di" bpmnElement="SF_17">
+        <di:waypoint x="1355" y="1200" />
+        <di:waypoint x="1395" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_18_di" bpmnElement="SF_18">
+        <di:waypoint x="1565" y="1200" />
+        <di:waypoint x="1650" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_19_di" bpmnElement="SF_19">
+        <di:waypoint x="1710" y="1200" />
+        <di:waypoint x="1815" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_20_di" bpmnElement="SF_20">
+        <di:waypoint x="1985" y="1200" />
+        <di:waypoint x="2078" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_21_di" bpmnElement="SF_21">
+        <di:waypoint x="1680" y="1230" />
+        <di:waypoint x="1680" y="1303" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_01_di" bpmnElement="MF_01">
+        <di:waypoint x="1580" y="803" />
+        <di:waypoint x="1580" y="1015" />
+        <di:waypoint x="1100" y="1015" />
+        <di:waypoint x="1100" y="1178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_02_di" bpmnElement="MF_02">
+        <di:waypoint x="1480" y="1162" />
+        <di:waypoint x="1480" y="1060" />
+        <di:waypoint x="1770" y="1060" />
+        <di:waypoint x="1770" y="787" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
